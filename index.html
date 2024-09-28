@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>お小遣い帳</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f0f0f0;
+      }
+
+      .error {
+        color: red;
+      }
+
+      #chartContainer {
+        width: 80%;
+        height: 400px;
+        margin: 20px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>お小遣い帳</h1>
+
+    <div>
+      <label for="date">日付:</label>
+      <input type="date" id="date" value="" />
+      <label for="amount">金額:</label>
+      <input type="number" id="amount" value="" />
+      <label for="category">カテゴリ:</label>
+      <select id="category">
+        <option value="食費">食費</option>
+        <option value="交通費">交通費</option>
+        <option value="娯楽費">娯楽費</option>
+        <option value="日用品">日用品</option>
+        <option value="その他">その他</option>
+      </select>
+      <label for="memo">メモ:</label>
+      <input type="text" id="memo" value="" />
+      <button onclick="addRecord()">追加</button>
+      <div id="error-message" class="error"></div>
+    </div>
+
+    <div>
+      <label for="searchDateFrom">日付(from):</label>
+      <input type="date" id="searchDateFrom" />
+      <label for="searchDateTo">日付(to):</label>
+      <input type="date" id="searchDateTo" />
+      <label for="searchAmountFrom">金額(from):</label>
+      <input type="number" id="searchAmountFrom" />
+      <label for="searchAmountTo">金額(to):</label>
+      <input type="number" id="searchAmountTo" />
+      <label for="searchCategory">カテゴリ:</label>
+      <select id="searchCategory">
+        <option value="">すべて</option>
+        <option value="食費">食費</option>
+        <option value="交通費">交通費</option>
+        <option value="娯楽費">娯楽費</option>
+        <option value="日用品">日用品</option>
+        <option value="その他">その他</option>
+      </select>
+      <label for="searchMemo">メモ:</label>
+      <input type="text" id="searchMemo" />
+      <button onclick="searchRecords()">検索</button>
+    </div>
+
+    <table id="recordTable">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>金額</th>
+          <th>カテゴリ</th>
+          <th>メモ</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="aggregates">
+      <h2>集計</h2>
+      <p>合計: <span id="total"></span></p>
+      <p>平均: <span id="average"></span></p>
+      <p>最大値: <span id="max"></span></p>
+      <p>最小値: <span id="min"></span></p>
+    </div>
+
+    <div id="chartContainer">
+      <canvas id="myChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      let records = loadRecords();
+      updateTable();
+      updateAggregates();
+      updateChart();
+
+      function saveRecords() {
+        localStorage.setItem("records", JSON.stringify(records));
+      }
+
+      function loadRecords() {
+        let storedRecords = localStorage.getItem("records");
+        return storedRecords ? JSON.parse(storedRecords) : [];
+      }
+
+      function addRecord() {
+        const date = document.getElementById("date").value;
+        const amount = parseInt(document.getElementById("amount").value);
+        const category = document.getElementById("category").value;
+        const memo = document.getElementById("memo").value;
+
+        const errorMessage = document.getElementById("error-message");
+
+        if (!date) {
+          errorMessage.textContent = "日付を入力してください。";
+          return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+          errorMessage.textContent = "金額は正の整数を入力してください。";
+          return;
+        }
+
+        errorMessage.textContent = "";
+
+        const newRecord = { date, amount, category, memo };
+        records.push(newRecord);
+        saveRecords();
+        updateTable();
+        updateAggregates();
+        updateChart();
+
+        document.getElementById("date").value = "";
+        document.getElementById("amount").value = "";
+        document.getElementById("memo").value = "";
+      }
+
+      function deleteRecord(index) {
+        records.splice(index, 1);
+        saveRecords();
+        updateTable();
+        updateAggregates();
+        updateChart();
+      }
+
+      function editRecord(index) {
+        const record = records[index];
+        document.getElementById("date").value = record.date;
+        document.getElementById("amount").value = record.amount;
+        document.getElementById("category").value = record.category;
+        document.getElementById("memo").value = record.memo;
+
+        const addButton = document.querySelector(
+          'button[onclick="addRecord()"]'
+        );
+        addButton.onclick = null;
+        addButton.textContent = "更新";
+
+        addButton.onclick = (function (currentIndex) {
+          return function () {
+            updateRecord(currentIndex);
+          };
+        })(index);
+      }
+
+      function updateRecord(index) {
+        const date = document.getElementById("date").value;
+        const amount = parseInt(document.getElementById("amount").value);
+        const category = document.getElementById("category").value;
+        const memo = document.getElementById("memo").value;
+
+        const errorMessage = document.getElementById("error-message");
+        if (!date) {
+          errorMessage.textContent = "日付を入力してください。";
+          return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+          errorMessage.textContent = "金額は正の整数を入力してください。";
+          return;
+        }
+        errorMessage.textContent = "";
+
+        records[index] = { date, amount, category, memo };
+        saveRecords();
+        updateTable();
+        updateAggregates();
+        updateChart();
+
+        document.getElementById("date").value = "";
+        document.getElementById("amount").value = "";
+        document.getElementById("memo").value = "";
+
+        const addButton = document.querySelector(
+          'button[onclick^="updateRecord"]'
+        );
+        addButton.textContent = "追加";
+        addButton.onclick = addRecord;
+      }
+
+      function updateTable() {
+        const tbody = document
+          .getElementById("recordTable")
+          .getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+
+        const filteredRecords = filterRecords();
+
+        filteredRecords.forEach((record, index) => {
+          const row = tbody.insertRow();
+          const dateCell = row.insertCell();
+          const amountCell = row.insertCell();
+          const categoryCell = row.insertCell();
+          const memoCell = row.insertCell();
+          const actionsCell = row.insertCell();
+
+          dateCell.textContent = record.date;
+          amountCell.textContent = record.amount;
+          categoryCell.textContent = record.category;
+          memoCell.textContent = record.memo;
+
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "削除";
+          deleteButton.onclick = () => deleteRecord(index);
+          actionsCell.appendChild(deleteButton);
+
+          const editButton = document.createElement("button");
+          editButton.textContent = "編集";
+          editButton.onclick = () => editRecord(index);
+          actionsCell.appendChild(editButton);
+        });
+      }
+
+      function filterRecords() {
+        const searchDateFrom = document.getElementById("searchDateFrom").value;
+        const searchDateTo = document.getElementById("searchDateTo").value;
+        const searchAmountFrom = parseInt(
+          document.getElementById("searchAmountFrom").value
+        );
+        const searchAmountTo = parseInt(
+          document.getElementById("searchAmountTo").value
+        );
+        const searchCategory = document.getElementById("searchCategory").value;
+        const searchMemo = document.getElementById("searchMemo").value;
+
+        return records.filter((record) => {
+          if (searchDateFrom && record.date < searchDateFrom) return false;
+          if (searchDateTo && record.date > searchDateTo) return false;
+
+          if (!isNaN(searchAmountFrom) && record.amount < searchAmountFrom)
+            return false;
+          if (!isNaN(searchAmountTo) && record.amount > searchAmountTo)
+            return false;
+
+          if (searchCategory && record.category !== searchCategory)
+            return false;
+          if (searchMemo && !record.memo.includes(searchMemo)) return false;
+
+          return true;
+        });
+      }
+
+      function searchRecords() {
+        updateTable();
+      }
+
+      function updateAggregates() {
+        const filteredRecords = filterRecords();
+
+        const total = filteredRecords.reduce(
+          (sum, record) => sum + record.amount,
+          0
+        );
+        const average =
+          filteredRecords.length > 0 ? total / filteredRecords.length : 0;
+        const max =
+          filteredRecords.length > 0
+            ? Math.max(...filteredRecords.map((record) => record.amount))
+            : 0;
+        const min =
+          filteredRecords.length > 0
+            ? Math.min(...filteredRecords.map((record) => record.amount))
+            : 0;
+
+        document.getElementById("total").textContent = total;
+        document.getElementById("average").textContent = average;
+        document.getElementById("max").textContent = max;
+        document.getElementById("min").textContent = min;
+      }
+
+      function updateChart() {
+        const filteredRecords = filterRecords();
+
+        const categoryCounts = {};
+        filteredRecords.forEach((record) => {
+          categoryCounts[record.category] =
+            (categoryCounts[record.category] || 0) + record.amount;
+        });
+
+        const ctx = document.getElementById("myChart").getContext("2d");
+        if (window.myChart) {
+          window.myChart.destroy(); // 前のグラフを削除
+        }
+
+        window.myChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: Object.keys(categoryCounts),
+            datasets: [
+              {
+                label: "カテゴリ別合計金額",
+                data: Object.values(categoryCounts),
+                backgroundColor: [
+                  "rgba(255, 99, 132, 0.2)",
+                  "rgba(54, 162, 235, 0.2)",
+                  "rgba(255, 206, 86, 0.2)",
+                  "rgba(75, 192, 192, 0.2)",
+                  "rgba(153, 102, 255, 0.2)",
+                  "rgba(255, 159, 64, 0.2)",
+                ],
+                borderColor: [
+                  "rgba(255, 99, 132, 1)",
+                  "rgba(54, 162, 235, 1)",
+                  "rgba(255, 206, 86, 1)",
+                  "rgba(75, 192, 192, 1)",
+                  "rgba(153, 102, 255, 1)",
+                  "rgba(255, 159, 64, 1)",
+                ],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "金額",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "カテゴリ",
+                },
+              },
+            },
+          },
+        });
+      }
+    </script>
+  </body>
+</html>

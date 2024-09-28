@@ -1,0 +1,58 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f8f8; /* 背景色 */
+  color: #333; /* テキスト色 */
+  line-height: 1.6; /* 行間 */
+}
+
+header {
+  background-color: #fff;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #ddd; /* 下線 */
+}
+
+nav ul {
+  list-style: none; /* リストのマーカーを非表示 */
+  padding: 0;
+  margin: 0;
+}
+
+nav li {
+  display: inline-block;
+  margin: 0 10px;
+}
+
+main {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+article {
+  background-color: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 影 */
+}
+
+pre {
+  background-color: #f5f5f5; /* コードブロックの背景色 */
+  padding: 10px;
+  overflow: auto; /* 横スクロールバー */
+  border-radius: 5px;
+}
+
+code {
+  font-family: monospace; /* 等幅フォント */
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #fff; /* 背景色 */
+  border-top: 1px solid #ddd; /* 上線 */
+}
